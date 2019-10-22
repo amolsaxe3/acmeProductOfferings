@@ -1,0 +1,94 @@
+<html>
+    <head>
+        <title>Acme Product Offerings</title>
+        <style>
+        </style>
+    </head>
+    <body>
+​
+    </body>
+    <script>
+        const grabCompanies = () => new Promise((res, rej) => {
+            return window.fetch('https://acme-users-api-rev.herokuapp.com/api/companies')
+            //returned promise goes into then
+            .then(response => response.json())
+            .then(jsonData => res(jsonData))
+            .catch(e => rej(e));
+        });
+        const grabProducts = () => new Promise((res, rej) => {
+            return window.fetch('https://acme-users-api-rev.herokuapp.com/api/products')
+            .then(response => response.json())
+            .then(jsonData => res(jsonData))
+            .catch(e => rej(e));
+        });
+        const grabOfferings = () => new Promise((res, rej) => {
+            return window.fetch('https://acme-users-api-rev.herokuapp.com/api/offerings')
+            .then(response => response.json())
+            .then(jsonData => res(jsonData))
+            .catch(e => rej(e));
+        });
+        const companies = grabCompanies();
+        const products = grabProducts();
+        const offerings = grabOfferings();
+        Promise.all([companies, products, offerings]).then(function(values){
+            const companiesData = values[0];
+            const productsData = values[1];
+            const offeringsData = values[2];
+            let masterList = [];
+            productsData.map(currentProduct => {
+                let eachProduct = {};
+                eachProduct['product-name'] = currentProduct['name'];
+                eachProduct['product-id'] = currentProduct['id'];
+                eachProduct['product-description'] = currentProduct['description'];
+                eachProduct['product-suggested-price'] = currentProduct['suggestedPrice'];
+                eachProduct['offerings'] = [];
+                masterList.push(eachProduct);
+            });
+            const processedOfferings = processOfferings(companiesData, productsData, offeringsData);
+            //console.log(processedOfferings);
+            const groupedOfferingsByProduct = groupOfferingsByProduct(processedOfferings);
+            console.log(groupedOfferingsByProduct);
+            //TO DO: match groupedOfferingsByProduct to masterList. Then we have a list for DOM.
+        });
+        //add company name and product name to each offering
+        function processOfferings(companies, products, offerings){
+            return offerings.map(currentOffering => {
+                //add company name to each offering based on companyId
+                let targetCompany = companies.filter(company => {
+                    if(company['id'] === currentOffering['companyId']){
+                        return company;
+                    }
+                });
+                currentOffering['companyName'] = targetCompany[0]['name'];
+                //add product name to each offering based on productId
+                let targetProduct = products.filter(product => {
+                    if(product['id'] === currentOffering['productId']){
+                        return product;
+                    }
+                });
+                currentOffering['productName'] = targetProduct[0]['name'];
+                return currentOffering;
+            });
+        };
+        //group offerings by product name
+        function groupOfferingsByProduct(offerings){
+            let groupedOfferings = {};
+            offerings.forEach(currentOffering => {
+                const companyName = currentOffering['companyName'];
+                const productName = currentOffering['productName'];
+                const price = currentOffering['price']
+                const productId = currentOffering['productId'];
+                if(!groupedOfferings.hasOwnProperty(productName)){
+                    groupedOfferings[productName] = [];
+                };
+                let eachOffering = {};
+                eachOffering['company-name'] = companyName;
+                eachOffering['price'] = price;
+                groupedOfferings[productName].push(eachOffering);
+            
+            })
+            
+            return groupedOfferings;
+        };
+    </script>
+</html>
